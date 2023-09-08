@@ -16,6 +16,8 @@ import torch.backends.cudnn as cudnn  # cuda模块
 FILE = Path(__file__).absolute()  # FILE = WindowsPath 'F:\yolo_v5\yolov5-U\detect.py'
 # 将'F:/yolo_v5/yolov5-U'加入系统的环境变量  该脚本结束后失效
 sys.path.append(FILE.parents[0].as_posix())  # add yolov5-U/ to path
+sys.path.append(Path().cwd().parent.as_posix())
+
 
 # ----------------- 导入自定义的其他包 -------------------
 from models.experimental import attempt_load
@@ -304,7 +306,7 @@ def parse_opt():
     view-img: 是否展示预测之后的图片或视频 默认False
     save-txt: 是否将预测的框坐标以txt文件格式保存 默认True 会在runs/detect/expn/labels下生成每张图片预测的txt文件
     save-conf: 是否保存预测每个目标的置信度到预测tx文件中 默认True
-    save-crop: 是否需要将预测到的目标从原图中扣出来 剪切好 并保存 会在runs/detect/expn下生成crops文件，将剪切的图片保存在里面  默认False
+    save-crop: 是否需要将预测到的目标从原图中扣出来 剪切好 并保存 会在runs/detect/expn下生成crops文件, 将剪切的图片保存在里面  默认False
     nosave: 是否不要保存预测后的图片  默认False 就是默认要保存预测后的图片
     classes: 在nms中是否是只保留某些特定的类 默认是None 就是所有类只要满足条件都可以保留
     agnostic-nms: 进行nms是否也除去不同类别之间的框 默认False
@@ -319,8 +321,10 @@ def parse_opt():
     half: 是否使用半精度 Float16 推理 可以缩短推理时间 但是默认是False
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument('--weights', nargs='+', type=str, default=r'K:\MyProject\YOLOv5-LPRNet-Licence-Recognition\weights\yolov5_best.pt', help='model.pt path(s)')
-    parser.add_argument('--source', type=str, default=r'K:\MyProject\YOLOv5-LPRNet-Licence-Recognition\demo\images\\', help='file/dir/URL/glob, 0 for webcam')
+    weights_path = Path().cwd().parent.joinpath("weights/yolov5_best.pt")
+    parser.add_argument('--weights', nargs='+', type=str, default=str(weights_path), help='model.pt path(s)')
+    source_path = Path().cwd().parent.joinpath("demo/images/")
+    parser.add_argument('--source', type=str, default=str(source_path), help='file/dir/URL/glob, 0 for webcam')
     parser.add_argument('--imgsz', '--img', '--img-size', type=int, default=640, help='inference size (pixels)')
     parser.add_argument('--conf-thres', type=float, default=0.25, help='confidence threshold')
     parser.add_argument('--iou-thres', type=float, default=0.45, help='NMS IoU threshold')
@@ -329,13 +333,14 @@ def parse_opt():
     parser.add_argument('--view-img', action='store_true', help='show results')
     parser.add_argument('--save-txt', action='store_true', help='save results to *.txt')
     parser.add_argument('--save-conf', action='store_true', help='save confidences in --save-txt labels')
-    parser.add_argument('--save-crop', action='store_true', help='save cropped prediction boxes')
+    parser.add_argument('--save-crop', action='store_true', help='save cropped prediction boxes', default=True)
     parser.add_argument('--nosave', action='store_true', help='do not save images/videos')
     parser.add_argument('--classes', nargs='+', type=int, help='filter by class: --class 0, or --class 0 2 3')
     parser.add_argument('--agnostic-nms', action='store_true', help='class-agnostic NMS')
     parser.add_argument('--augment', action='store_true', help='augmented inference')
     parser.add_argument('--update', action='store_true', help='update all models')
-    parser.add_argument('--project', default=r'K:\MyProject\YOLOv5-LPRNet-Licence-Recognition/runs/detect', help='save results to project/name')
+    project_path = Path().cwd().parent.joinpath("runs/detect/")
+    parser.add_argument('--project', default=str(project_path), help='save results to project/name')
     parser.add_argument('--name', default='exp', help='save results to project/name')
     parser.add_argument('--exist-ok', action='store_true', help='existing project/name ok, do not increment')
     parser.add_argument('--line-thickness', default=1, type=int, help='bounding box thickness (pixels)')

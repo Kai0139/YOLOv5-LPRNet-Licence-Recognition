@@ -5,6 +5,11 @@
 test pretrained model.
 Author: aiboy.wei@outlook.com .
 '''
+
+from pathlib import Path
+import sys
+sys.path.append(Path().cwd().parent.as_posix())
+
 from torch.utils.data import DataLoader
 
 
@@ -26,10 +31,17 @@ from models.LPRNet import CHARS, LPRNet
 from utils.load_lpr_data import LPRDataLoader
 
 
+# FILE = Path(__file__).absolute()  # FILE = WindowsPath 'F:\yolo_v5\yolov5-U\detect.py'
+# # 将'F:/yolo_v5/yolov5-U'加入系统的环境变量  该脚本结束后失效
+# sys.path.append(FILE.parents[0].as_posix())  # add yolov5-U/ to path
+
+
 def get_parser():
+    weights_path = Path().cwd().parent.joinpath("weights/lprnet_best.pth")
     parser = argparse.ArgumentParser(description='parameters to train net')
     parser.add_argument('--img_size', default=[94, 24], help='the image size')
-    parser.add_argument('--test_img_dirs', default=r"K:\MyProject\datasets\ccpd\rec\test", help='the test images path')
+    source_path = Path().cwd().parent.joinpath("runs/detect/exp11/crops/licence/")
+    parser.add_argument('--test_img_dirs', default=str(source_path), help='the test images path')
     parser.add_argument('--dropout_rate', default=0, help='dropout rate.')
     parser.add_argument('--lpr_max_len', default=8, help='license plate number max length.')
     parser.add_argument('--test_batch_size', default=100, help='testing batch size.')
@@ -37,7 +49,7 @@ def get_parser():
     parser.add_argument('--num_workers', default=0, type=int, help='Number of workers used in dataloading')
     parser.add_argument('--cuda', default=True, type=bool, help='Use cuda to train model')
     parser.add_argument('--show', default=False, type=bool, help='show test image and its predict result or not.')
-    parser.add_argument('--pretrained_model', default=r'K:\MyProject\YOLOv5-LPRNet-Licence-Recognition\weights\lprnet_best.pth', help='pretrained base model')
+    parser.add_argument('--pretrained_model', default=str(weights_path), help='pretrained base model')
 
     args = parser.parse_args()
 

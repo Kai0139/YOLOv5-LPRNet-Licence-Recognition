@@ -7,11 +7,11 @@ from utils.datasets import *
 from utils.utils import *
 from models.LPRNet import *
 
-import rospy
-from sensor_msgs.msg import Image
-import cv_bridge
+# import rospy
+# from sensor_msgs.msg import Image
+# import cv_bridge
 
-def detect(opt, save_img=False):
+def detect(save_img=True):
     classify, out, source, det_weights, rec_weights, view_img, save_txt, imgsz = \
         opt.classify, opt.output, opt.source, opt.det_weights, opt.rec_weights,  opt.view_img, opt.save_txt, opt.img_size
     webcam = source == '0' or source.startswith('rtsp') or source.startswith('http') or source.endswith('.txt')
@@ -40,14 +40,22 @@ def detect(opt, save_img=False):
     # Set Dataloader
     dataset = LoadImages(source, img_size=imgsz)
 
+    # Set Dataloader
+    vid_path, vid_writer = None, None
+
     # Get names and colors
     names = model.module.names if hasattr(model, 'module') else model.names
     colors = [[random.randint(0, 255) for _ in range(3)] for _ in range(len(names))]
+
+    cap = cv2.VideoCapture("./data/car.mp4")
 
     # Run demo
     t0 = time.time()
     img = torch.zeros((1, 3, imgsz, imgsz), device=device)  # init img
     _ = model(img.half() if half else img) if device.type != 'cpu' else None  # run once
+
+    # while cap.isOpened():
+    #     ret, frame = cap.read()
     for path, img, im0s, vid_cap in dataset:
         img = torch.from_numpy(img).to(device)
         img = img.half() if half else img.float()  # uint8 to fp16/32
@@ -73,6 +81,8 @@ def detect(opt, save_img=False):
                 p, s, im0 = path[i], '%g: ' % i, im0s[i].copy()
             else:
                 p, s, im0 = path, '', im0s
+
+            save_path = str(Path(out) / Path(p).name)
 
             s += '%gx%g ' % img.shape[2:]  # print string
             gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]  # normalization gain whwh
@@ -102,16 +112,22 @@ def detect(opt, save_img=False):
             # Print time (demo + NMS)
             print('%sDone. (%.3fs)' % (s, t2 - t1))
 
-class DetectROS(object):
-    def __init__(self, opt : argparse.Namespace) -> None:
-        self.img_sub = rospy.Subscriber("/mvsua_cam/image_raw1", Image, self.img_cb)
-        self.device = torch_utils.select_device(opt.device)
+            # Save results (image with detections)
+            if save_img:
+                if dataset.mode == 'images':
+                    cv2.imwrite(save_path, im0)
+                else:
+                    if vid_path != save_path:  # new video
+                        vid_path = save_path
+                        if isinstance(vid_writer, cv2.VideoWriter):
+                            vid_writer.release()  # release previous video writer
 
-        pass
-
-    def img_cb(self, img):
-
-        pass
+                        fourcc = 'mp4v'  # rec_result video codec
+                        fps = vid_cap.get(cv2.CAP_PROP_FPS)
+                        w = int(vid_cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+                        h = int(vid_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+                        vid_writer = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*fourcc), fps, (w, h))
+                    vid_writer.write(im0)
 
 
 if __name__ == '__main__':
@@ -119,7 +135,7 @@ if __name__ == '__main__':
     parser.add_argument('--classify', nargs='+', type=str, default=True, help='True rec')
     parser.add_argument('--det-weights', nargs='+', type=str, default='./weights/yolov5_best.pt', help='model.pt path(s)')
     parser.add_argument('--rec-weights', nargs='+', type=str, default='./weights/lprnet_best.pth', help='model.pt path(s)')
-    parser.add_argument('--source', type=str, default='./demo/images/', help='source')  # file/folder, 0 for webcam
+    parser.add_argument('--source', type=str, default='./data/car.mp4', help='source')  # file/folder, 0 for webcam
     parser.add_argument('--output', type=str, default='demo/rec_result', help='rec_result folder')  # rec_result folder
     parser.add_argument('--img-size', type=int, default=640, help='demo size (pixels)')
     parser.add_argument('--conf-thres', type=float, default=0.4, help='object confidence threshold')
@@ -133,8 +149,6 @@ if __name__ == '__main__':
     parser.add_argument('--update', action='store_true', help='update all models')
     opt = parser.parse_args()
     print(opt)
-
-    rospy.init_node("yolov5_lpr_node")
 
     with torch.no_grad():
         detect()

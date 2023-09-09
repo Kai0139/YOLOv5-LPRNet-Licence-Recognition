@@ -39,16 +39,16 @@ from utils.load_lpr_data import LPRDataLoader
 def get_parser():
     weights_path = Path().cwd().parent.joinpath("weights/lprnet_best.pth")
     parser = argparse.ArgumentParser(description='parameters to train net')
-    parser.add_argument('--img_size', default=[94, 24], help='the image size')
+    parser.add_argument('--img_size', default=(94, 24), help='the image size')
     source_path = Path().cwd().parent.joinpath("runs/detect/exp11/crops/licence/")
     parser.add_argument('--test_img_dirs', default=str(source_path), help='the test images path')
     parser.add_argument('--dropout_rate', default=0, help='dropout rate.')
     parser.add_argument('--lpr_max_len', default=8, help='license plate number max length.')
-    parser.add_argument('--test_batch_size', default=100, help='testing batch size.')
+    parser.add_argument('--test_batch_size', default=1, help='testing batch size.')
     parser.add_argument('--phase_train', default=False, type=bool, help='train or test phase flag.')
     parser.add_argument('--num_workers', default=0, type=int, help='Number of workers used in dataloading')
     parser.add_argument('--cuda', default=True, type=bool, help='Use cuda to train model')
-    parser.add_argument('--show', default=False, type=bool, help='show test image and its predict result or not.')
+    parser.add_argument('--show', default=True, type=bool, help='show test image and its predict result or not.')
     parser.add_argument('--pretrained_model', default=str(weights_path), help='pretrained base model')
 
     args = parser.parse_args()
@@ -88,6 +88,7 @@ def test():
     test_dataset = LPRDataLoader(test_img_dirs.split(','), args.img_size, args.lpr_max_len)
     try:
         Greedy_Decode_Eval(lprnet, test_dataset, args)
+        # Greedy_Decode(lprnet, test_dataset, args)
     finally:
         cv2.destroyAllWindows()
 
@@ -141,10 +142,11 @@ def Greedy_Decode_Eval(Net, datasets, args):
                 no_repeat_blank_label.append(c)
                 pre_c = c
             preb_labels.append(no_repeat_blank_label)  # 得到最终的无重复字符和无空白字符的序列
+        print(preb_labels)
         for i, label in enumerate(preb_labels):  # 统计准确率
             # show image and its predict label
             if args.show:
-                show(imgs[i], label, targets[i])
+                show(imgs[i], label, targets[i], i)
             if len(label) != len(targets[i]):
                 Tn_1 += 1  # 错误+1
                 continue
@@ -157,7 +159,7 @@ def Greedy_Decode_Eval(Net, datasets, args):
     t2 = time.time()
     print("[Info] Test Speed: {}s 1/{}]".format((t2 - t1) / len(datasets), len(datasets)))
 
-def show(img, label, target):
+def show(img, label, target, idx):
     img = np.transpose(img, (1, 2, 0))
     img *= 128.
     img += 127.5
@@ -175,10 +177,10 @@ def show(img, label, target):
         flag = "T"
     # img = cv2.putText(img, lb, (0,16), cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.6, (0, 0, 255), 1)
     img = cv2ImgAddText(img, lb, (0, 0))
-    cv2.imshow("test", img)
+    cv2.imwrite("test{}.png".format(idx), img)
     print("target: ", tg, " ### {} ### ".format(flag), "predict: ", lb)
-    cv2.waitKey()
-    cv2.destroyAllWindows()
+    # cv2.waitKey()
+    # cv2.destroyAllWindows()
 
 def cv2ImgAddText(img, text, pos, textColor=(255, 0, 0), textSize=12):
     if (isinstance(img, np.ndarray)):  # detect opencv format or not

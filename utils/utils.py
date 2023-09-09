@@ -950,7 +950,8 @@ def change_cv2_draw(image,strs,local,sizes,colour):
     draw = ImageDraw.Draw(pilimg)  # 图片上打印
     # font = ImageFont.truetype("./data/simhei.ttf",sizes, encoding="utf-8")
     # draw.text((0,0),strs,colour,font=font)
-    font = ImageFont.truetype("simsun.ttc", 32, encoding="unic")
+    # font = ImageFont.truetype("./data/simsun.ttc", 32, encoding="unic")
+    font = ImageFont.truetype("data/NotoSansCJK-Regular.ttc", 32, encoding="utf-8")
     draw.text(local, strs, 'white', font=font)
     image = cv2.cvtColor(np.array(pilimg), cv2.COLOR_RGB2BGR)
     return image
